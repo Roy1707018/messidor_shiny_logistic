@@ -39,6 +39,10 @@ ui <- fluidPage(
     
     mainPanel(
       tabsetPanel(
+        
+        # ----------------------------------------------------------
+        # Introduction Tab
+        # ----------------------------------------------------------
         tabPanel("Introduction",
                  h3("About the Dataset"),
                  p("This app uses the Messidor Features dataset. Each row is a patient, and the columns are numeric features extracted from retinal fundus images."),
@@ -48,9 +52,12 @@ ui <- fluidPage(
                  p("We use logistic regression to model the probability that a patient has diabetic retinopathy based on image-derived features."),
                  p("The model outputs P(DR) between 0 and 1. We then choose a classification threshold."),
                  p("If P(DR) is greater than or equal to the threshold, we classify the patient as DR; otherwise as No_DR."),
-                 p("By changing the threshold and the train/test split in the left panel, you can see how the confusion matrix, accuracy, sensitivity, and specificity change. This shows how model parameters affect performance, following the data science life cycle.")
+                 p("By changing the threshold and the train/test split in the left panel, you can see how the confusion matrix, accuracy, sensitivity, and specificity change. This demonstrates the impact of model parameters according to the data science life cycle.")
         ),
         
+        # ----------------------------------------------------------
+        # Data Overview Tab
+        # ----------------------------------------------------------
         tabPanel("Data Overview",
                  h4("Summary of Variables"),
                  verbatimTextOutput("data_summary"),
@@ -58,6 +65,9 @@ ui <- fluidPage(
                  tableOutput("data_head")
         ),
         
+        # ----------------------------------------------------------
+        # Model Results Tab
+        # ----------------------------------------------------------
         tabPanel("Model Results",
                  h4("Confusion Matrix"),
                  tableOutput("conf_matrix"),
@@ -67,7 +77,21 @@ ui <- fluidPage(
                  
                  h4("Logistic Regression Summary"),
                  verbatimTextOutput("model_summary")
+        ),
+        
+        # ----------------------------------------------------------
+        # NEW TAB: Full Report PDF
+        # ----------------------------------------------------------
+        tabPanel("Full Report",
+                 h3("Case Study Report"),
+                 p("Below is the complete case study report as a PDF."),
+                 
+                 tags$iframe(
+                   src = "case_study_3.pdf",   # MUST BE IN www/ FOLDER
+                   style = "width:100%; height:700px; border:none;"
+                 )
         )
+        
       )
     )
   )
@@ -141,20 +165,19 @@ server <- function(input, output, session) {
     # Accuracy
     accuracy <- sum(diag(cm)) / sum(cm)
     
-    # Handle cases where a row might be zero to avoid NaN
-    TP <- ifelse("DR"    %in% rownames(cm) && "DR"    %in% colnames(cm), cm["DR",    "DR"],    0)
-    FN <- ifelse("DR"    %in% rownames(cm) && "No_DR" %in% colnames(cm), cm["DR",    "No_DR"], 0)
+    TP <- ifelse("DR" %in% rownames(cm) && "DR" %in% colnames(cm), cm["DR", "DR"], 0)
+    FN <- ifelse("DR" %in% rownames(cm) && "No_DR" %in% colnames(cm), cm["DR", "No_DR"], 0)
     TN <- ifelse("No_DR" %in% rownames(cm) && "No_DR" %in% colnames(cm), cm["No_DR", "No_DR"], 0)
-    FP <- ifelse("No_DR" %in% rownames(cm) && "DR"    %in% colnames(cm), cm["No_DR", "DR"],    0)
+    FP <- ifelse("No_DR" %in% rownames(cm) && "DR" %in% colnames(cm), cm["No_DR", "DR"], 0)
     
     sensitivity <- ifelse((TP + FN) > 0, TP / (TP + FN), NA)
     specificity <- ifelse((TN + FP) > 0, TN / (TN + FP), NA)
     
     cat("Threshold:", input$threshold, "\n")
     cat("Accuracy  :", round(accuracy * 100, 2), "%\n")
-    cat("Sensitivity (TPR, DR correctly detected) :", 
+    cat("Sensitivity (TPR, DR correctly detected):",
         ifelse(is.na(sensitivity), "NA", paste0(round(sensitivity * 100, 2), "%")), "\n")
-    cat("Specificity (TNR, No_DR correctly detected):", 
+    cat("Specificity (TNR, No_DR correctly detected):",
         ifelse(is.na(specificity), "NA", paste0(round(specificity * 100, 2), "%")), "\n")
   })
   
